@@ -208,4 +208,4 @@ Summit - сайт для пошуку гірських маршрутів та �
 
 ## Схема бази даних
 
-![Схема бази даних Summit](database-schema.png)
+<img width="736" height="604" alt="Знімок екрана 2026-10-19 032210" src="https://github.com/user-attachments/assets/1e0d6ecb-c191-4dcf-8cd9-ff8c5caa00f1" />
