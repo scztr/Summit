@@ -8,11 +8,84 @@ Summit - сайт для пошуку гірських маршрутів та �
 
 Зареєстрований юзер зможе редагувати профіль, зберігати сходження в обране та подавати заявки на участь. Адміністратор керуватиме каталогом і заявками. Сторінка «Про нас» міститиме опис проєкту й контакти.
 
-Для початку передбачається декілька країн з невеликою к-стю пропозицій
+Для початку передбачається декілька країн з невеликою к-стю пропозицій.
+
+## Поточний етап
+
+Реалізовано CRUD для країн, гір, маршрутів, зупинок, організаторів і сходжень.
+
+Бекенд використовує Django, Django REST Framework, APIView, серіалізатори та ORM. Дані зберігаються в SQLite, структура бази створюється міграціями.
+
+Реєстрація, авторизація, профіль, заявки, обране, пошук і фільтри залишаються планами на наступні етапи. Зараз API каталогу доступне без авторизації, включно зі зміною даних.
+
+[Фронтенд проєкту](https://github.com/scztr/summit-frontend) показує список гір, отриманий з API.
+
+## Як запустити проєкт
+
+Потрібен Python 3.12 або новіший, сумісний із залежностями в requirements.txt.
+
+Команди виконуйте в папці з manage.py.
+
+1. Створіть віртуальне середовище:
+
+   ```bash
+   python3 -m venv .venv
+   ```
+
+2. Активуйте його.
+
+   Linux / WSL / macOS:
+
+   ```bash
+   source .venv/bin/activate
+   ```
+
+   Windows PowerShell:
+
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   ```
+
+3. Встановіть залежності:
+
+   ```bash
+   python -m pip install -r requirements.txt
+   ```
+
+4. Застосуйте міграції:
+
+   ```bash
+   python manage.py migrate
+   ```
+
+5. Запустіть сервер:
+
+   ```bash
+   python manage.py runserver
+   ```
+
+Бекенд: http://127.0.0.1:8000.
+
+Приклад запиту: http://127.0.0.1:8000/api/v1/countries.
+
+Фронтенд запускається окремо на http://localhost:3000.
+CORS дозволяє запити з http://localhost:3000 та http://127.0.0.1:3000.
+
+Після створення нової бази каталог порожній. Дані можна додати POST-запитами.
 
 ## REST API
 
-Базовий шлях: `/api/v1`. Дані передаються у JSON. Нижче - план API.
+Базовий шлях: `/api/v1`. Дані передаються у JSON.
+
+URL використовуються без кінцевого `/`.
+
+Позначення `[Country]`, `[Mountain]` та інші означають JSON-масив об'єктів відповідного типу. Порожній список повертається як `[]`.
+
+`id` створюється сервером. Для POST передаються поля об'єкта без `id`, для PATCH - лише поля, які потрібно змінити.
+
+Для зупинки `route_id` береться з URL і не передається в JSON-тілі. Для інших ресурсів пов'язані об'єкти задаються через `country_id`, `mountain_id`, `route_id` або `organizer_id`.
+
+Відповідь `204` не містить тіла.
 
 ### Формати даних
 
@@ -35,12 +108,14 @@ Summit - сайт для пошуку гірських маршрутів та �
   "id": 1,
   "country_id": 1,
   "name": "Навчальна вершина",
-  "height_m": 2800,
+  "height": 2800,
   "description": "Умовна гора.",
-  "image_url": "https://example.com/mountain.jpg",
-  "summit_view_url": "https://example.com/summit.jpg"
+  "image": "https://example.com/mountain.jpg",
+  "summit_view": "https://example.com/summit.jpg"
 }
 ```
+
+`height` - висота в метрах. Поля `image` та `summit_view` можна не передавати або залишити порожніми рядками.
 
 #### Route
 
@@ -50,11 +125,15 @@ Summit - сайт для пошуку гірських маршрутів та �
   "mountain_id": 1,
   "name": "Південний маршрут",
   "description": "Умовний маршрут.",
-  "difficulty": "medium",
-  "duration_days": 3,
-  "source_url": null
+  "difficult": "medium",
+  "duration": 3,
+  "source": null
 }
 ```
+
+`difficult`: `easy`, `medium` або `hard`.
+`duration` - тривалість у днях.
+`source` можна не передавати, залишити порожнім рядком або вказати `null`.
 
 #### Stop - зупинка маршруту
 
@@ -64,10 +143,12 @@ Summit - сайт для пошуку гірських маршрутів та �
   "route_id": 1,
   "position": 1,
   "name": "Перший табір",
-  "altitude_m": 1800,
+  "altitude": 1800,
   "description": "Умовна зупинка для ночівлі."
 }
 ```
+
+`position` - номер зупинки, `altitude` - висота в метрах.
 
 #### Organizer
 
@@ -78,9 +159,12 @@ Summit - сайт для пошуку гірських маршрутів та �
   "description": "Навчальний організатор.",
   "email": "club@example.com",
   "phone": "+380000000000",
-  "website_url": null
+  "website": null
 }
 ```
+
+У коді модель називається `Org`.
+`website` можна не передавати, залишити порожнім рядком або вказати `null`.
 
 #### Trip - пропозиція сходження
 
@@ -94,118 +178,161 @@ Summit - сайт для пошуку гірських маршрутів та �
   "end_date": "2027-06-12",
   "price": "4500.00",
   "capacity": 8,
-  "rental_available": true,
-  "rental_details": "Спорядження за попередньою домовленістю; вартість уточнюється.",
-  "guide_available": true,
-  "support_details": "Супровід гіда включено.",
-  "included_services": "Трансфер до початку маршруту.",
+  "rent": true,
+  "rent_detail": "Спорядження за попередньою домовленістю; вартість уточнюється.",
+  "sherpa": true,
+  "support": "Супровід включено.",
+  "services": "Трансфер до початку маршруту.",
   "requirements": "Попередній досвід гірських походів.",
-  "status": "open",
-  "available_places": 8
+  "status": "open"
 }
 ```
 
-#### User - профіль
+Дати передаються у форматі `YYYY-MM-DD`.
 
-```json
-{
-  "id": 1,
-  "username": "climber",
-  "email": "climber@example.com",
-  "first_name": "Олена",
-  "last_name": "Коваль"
-}
-```
+`rent` - наявність оренди спорядження, `sherpa` - наявність супроводу шерпи.
+Обидва поля за замовчуванням мають значення `false`.
 
-#### Application - заявка
+`rent_detail`, `support`, `services`, `requirements` можна не передавати або залишити порожніми.
 
-```json
-{
-  "id": 1,
-  "user_id": 1,
-  "trip_id": 1,
-  "participants_count": 2,
-  "comment": "Потрібно уточнити оренду.",
-  "status": "pending",
-  "created_at": "2027-01-10T12:00:00Z"
-}
-```
+`status`: `open`, `closed` або `cancelled`. За замовчуванням - `open`.
 
-#### Favorite
-
-```json
-{
-  "id": 1,
-  "user_id": 1,
-  "trip_id": 1,
-  "created_at": "2027-01-10T12:00:00Z"
-}
-```
+Інші поля наведених об'єктів, крім серверних `id` і `route_id` зупинки, обов'язкові при створенні.
 
 ### Каталог
 
-| Метод | Ендпоінт | Використання | Параметри / JSON-тіло | Відповідь |
+| Метод | Ендпоінт | Використання | JSON-тіло | Успішна відповідь |
 | --- | --- | --- | --- | --- |
-| GET | /countries | Список країн | — | 200, [Country] |
-| GET | /countries/{id} | Переглянути країну | id | 200, Country |
-| POST | /countries | Додати країну | поля Country | 201, Country |
-| PATCH | /countries/{id} | Змінити країну | id; частина полів Country | 200, Country |
-| DELETE | /countries/{id} | Видалити країну | id | 204 |
-| GET | /mountains | Список гір | country_id, search, min_height, max_height; ordering: name, height_m | 200, [Mountain] |
-| GET | /mountains/{id} | Переглянути гору | id | 200, Mountain |
-| POST | /mountains | Додати гору | поля Mountain | 201, Mountain |
-| PATCH | /mountains/{id} | Змінити гору | id; частина полів Mountain | 200, Mountain |
-| DELETE | /mountains/{id} | Видалити гору | id | 204 |
-| GET | /routes | Список маршрутів | mountain_id, search, difficulty; ordering: name, duration_days | 200, [Route] |
-| GET | /routes/{id} | Переглянути маршрут | id | 200, Route |
-| POST | /routes | Додати маршрут | поля Route | 201, Route |
-| PATCH | /routes/{id} | Змінити маршрут | id; частина полів Route | 200, Route |
-| DELETE | /routes/{id} | Видалити маршрут | id | 204 |
-| GET | /organizers | Список організаторів | search | 200, [Organizer] |
-| GET | /organizers/{id} | Переглянути організатора | id | 200, Organizer |
-| POST | /organizers | Додати організатора | поля Organizer | 201, Organizer |
-| PATCH | /organizers/{id} | Змінити організатора | id; частина полів Organizer | 200, Organizer |
-| DELETE | /organizers/{id} | Видалити організатора | id | 204 |
-| GET | /trips | Список сходжень | country_id, mountain_id, route_id, organizer_id, search (title), difficulty, min_price, max_price, start_date_from, rental_available, guide_available, status; ordering: price, start_date | 200, [Trip] |
-| GET | /trips/{id} | Переглянути сходження | id | 200, Trip |
-| POST | /trips | Додати сходження | поля Trip | 201, Trip |
-| PATCH | /trips/{id} | Змінити сходження | id; частина полів Trip | 200, Trip |
-| DELETE | /trips/{id} | Видалити сходження | id | 204 |
+| GET | `/countries` | Список країн | — | 200, [Country] |
+| GET | `/countries/{id}` | Переглянути країну | — | 200, Country |
+| POST | `/countries` | Додати країну | Поля Country без id | 201, Country |
+| PATCH | `/countries/{id}` | Змінити країну | Частина полів Country без id | 200, Country |
+| DELETE | `/countries/{id}` | Видалити країну | — | 204 |
+| GET | `/mountains` | Список гір | — | 200, [Mountain] |
+| GET | `/mountains/{id}` | Переглянути гору | — | 200, Mountain |
+| POST | `/mountains` | Додати гору | Поля Mountain без id | 201, Mountain |
+| PATCH | `/mountains/{id}` | Змінити гору | Частина полів Mountain без id | 200, Mountain |
+| DELETE | `/mountains/{id}` | Видалити гору | — | 204 |
+| GET | `/routes` | Список маршрутів | — | 200, [Route] |
+| GET | `/routes/{id}` | Переглянути маршрут | — | 200, Route |
+| POST | `/routes` | Додати маршрут | Поля Route без id | 201, Route |
+| PATCH | `/routes/{id}` | Змінити маршрут | Частина полів Route без id | 200, Route |
+| DELETE | `/routes/{id}` | Видалити маршрут | — | 204 |
+| GET | `/organizers` | Список організаторів | — | 200, [Organizer] |
+| GET | `/organizers/{id}` | Переглянути організатора | — | 200, Organizer |
+| POST | `/organizers` | Додати організатора | Поля Organizer без id | 201, Organizer |
+| PATCH | `/organizers/{id}` | Змінити організатора | Частина полів Organizer без id | 200, Organizer |
+| DELETE | `/organizers/{id}` | Видалити організатора | — | 204 |
+| GET | `/trips` | Список сходжень | — | 200, [Trip] |
+| GET | `/trips/{id}` | Переглянути сходження | — | 200, Trip |
+| POST | `/trips` | Додати сходження | Поля Trip без id | 201, Trip |
+| PATCH | `/trips/{id}` | Змінити сходження | Частина полів Trip без id | 200, Trip |
+| DELETE | `/trips/{id}` | Видалити сходження | — | 204 |
+
+`{id}` - ID об'єкта. Пошук, фільтри та параметри сортування в поточній версії не реалізовані.
 
 ### Зупинки
 
-| Метод | Ендпоінт | Використання | Параметри / JSON-тіло | Відповідь |
+| Метод | Ендпоінт | Використання | JSON-тіло | Успішна відповідь |
 | --- | --- | --- | --- | --- |
-| `GET` | `/routes/{route_id}/stops` | План зупинок за position | route_id | 200, [Stop] |
-| `GET` | `/routes/{route_id}/stops/{id}` | Окрема зупинка | route_id, id | 200, Stop |
-| `POST` | `/routes/{route_id}/stops` | Додати зупинку | route_id; поля Stop | 201, Stop |
-| `PATCH` | `/routes/{route_id}/stops/{id}` | Редагувати зупинку | route_id, id; частина полів Stop | 200, Stop |
-| `DELETE` | `/routes/{route_id}/stops/{id}` | Видалити зупинку | route_id, id | 204 |
+| GET | `/routes/{route_id}/stops` | План зупинок за position | — | 200, [Stop] |
+| GET | `/routes/{route_id}/stops/{id}` | Окрема зупинка | — | 200, Stop |
+| POST | `/routes/{route_id}/stops` | Додати зупинку | Поля Stop без id і route_id | 201, Stop |
+| PATCH | `/routes/{route_id}/stops/{id}` | Редагувати зупинку | Частина полів Stop без id і route_id | 200, Stop |
+| DELETE | `/routes/{route_id}/stops/{id}` | Видалити зупинку | — | 204 |
 
-### Реєстрація та профіль
+`{route_id}` - ID маршруту, `{id}` - ID зупинки цього маршруту.
 
-| Метод | Ендпоінт | Використання | JSON-тіло | Відповідь |
-| --- | --- | --- | --- | --- |
-| `POST` | `/users` | Реєстрація | `{"username":"climber","email":"climber@example.com","password":"ExamplePass123!","first_name":"Олена","last_name":"Коваль"}` | 201, User; 409, зайняті username/email |
-| `POST` | `/sessions` | Вхід | `{"username":"climber","password":"ExamplePass123!"}` | 201, `{"user": User}`; cookie сесії; 401, неправильні дані |
-| `DELETE` | `/sessions/current` | Вихід | — | 204 |
-| `GET` | `/users/me` | Свій профіль | — | 200, User |
-| `PATCH` | `/users/me` | Змінити профіль | Будь-яка непорожня підмножина `{"email":"new@example.com","first_name":"Олена","last_name":"Коваль"}` | 200, User; 409, зайнятий email |
+### Обмеження та помилки
 
-Реєстрація та вхід доступні всім. Сервер не повертає пароль.
+- Назва країни має бути унікальною.
+- Пов'язані країна, гора, маршрут або організатор повинні існувати.
+- Ціна сходження не може бути від'ємною.
+- Кількість місць має бути більшою за нуль.
+- Дата завершення сходження не може бути раніше дати початку.
+- Номер зупинки має бути більшим за нуль.
+- Країну не можна видалити, поки до неї прив'язані гори.
+- Гору не можна видалити, поки до неї прив'язані маршрути.
+- Маршрут та організатора не можна видалити, поки до них прив'язані сходження.
+- При видаленні маршруту його зупинки видаляються автоматично.
 
-### Заявки та обране
+| Статус | Коли повертається |
+| --- | --- |
+| 400 | Невалідні дані: відсутні обов'язкові поля, неправильні значення, повторна назва країни або неіснуючий ID зв'язку в тілі запиту |
+| 404 | Об'єкт за ID у URL не знайдено |
+| 409 | Видалення конфліктує з наявними залежними записами |
 
-| Метод | Ендпоінт | Використання | Параметри / JSON-тіло | Відповідь |
-| --- | --- | --- | --- | --- |
-| `GET` | `/applications` | Список своїх заявок; для адміна — усіх | Необов'язкові status, trip_id | 200, [Application] |
-| `GET` | `/applications/{id}` | Деталі своєї заявки; адмін — будь-якої | id | 200, Application |
-| `POST` | `/applications` | Подати заявку | `{"trip_id":1,"participants_count":2,"comment":"Потрібна оренда."}` | 201, Application; 409, немає місць, сходження недоступне або заявка вже існує |
-| `PATCH` | `/applications/{id}` | Змінити статус | id; `{"status":"cancelled"}` | 200, Application; 409, недопустима зміна або немає місць |
-| `GET` | `/favorites` | Своє обране | — | 200, [Favorite] |
-| `POST` | `/favorites` | Додати сходження в обране | `{"trip_id":1}` | 201, Favorite; 409, уже додано |
-| `DELETE` | `/favorites/{id}` | Видалити власний запис обраного | id запису Favorite | 204 |
+Для помилок використовується верхній ключ `errors`. Його значення - повідомлення або об'єкт з помилками окремих полів.
+
+Приклад 404:
+
+```json
+{
+  "errors": "Країну не знайдено"
+}
+```
+
+Приклад 400:
+
+```json
+{
+  "errors": {
+    "capacity": [
+      "Кількість місць має бути більшою за нуль."
+    ]
+  }
+}
+```
+
+Приклад 409:
+
+```json
+{
+  "errors": "Неможливо видалити країну, поки до неї прив’язані гори. Спочатку видаліть або перенесіть їх."
+}
+```
+
+Статус 409 обрано, тому що запит на видалення правильний, але поточні зв'язки між об'єктами не дозволяють виконати його. Спочатку потрібно видалити залежні записи або змінити їхні зв'язки.
+
+## Postman
+
+[Колекція Summit API](postman/Summit.postman_collection.json) має формат Collection v2.1.
+
+Вона містить 30 CRUD-операцій та 20 додаткових запитів з очікуваними помилками.
+
+1. Запустіть бекенд.
+2. Імпортуйте файл у Postman.
+3. Перевірте змінну колекції `base_url`:
+
+   ```text
+   http://127.0.0.1:8000/api/v1
+   ```
+
+4. Виконуйте папки за порядком:
+   - `01` - створення тестових даних;
+   - `02` - списки, деталі та редагування;
+   - `03` - приклади помилок;
+   - `04` - видалення тестових даних.
+
+ID створених записів зберігаються у змінні колекції автоматично.
+
+Папка 04 видаляє записи за цими ID. Не підставляйте туди ID даних, які потрібно зберегти.
+
+Приклади відповідей у згенерованій колекції є шаблонними. Повний запуск усіх запитів ще не перевірений.
+
+## Подальші плани
+
+- Реєстрація та вхід: `/users`, `/sessions`, `/sessions/current`.
+- Перегляд і редагування профілю: `/users/me`.
+- Заявки на участь: `/applications`, `/applications/{id}`.
+- Обране: `/favorites`, `/favorites/{id}`.
+- Пошук, фільтрація та сортування каталогу.
+- Сторінка «Про нас».
+
+Ці функції не входять до поточної реалізації.
 
 ## Схема бази даних
 
-<img width="736" height="604" alt="Знімок екрана 2026-10-19 032210" src="https://github.com/user-attachments/assets/1e0d6ecb-c191-4dcf-8cd9-ff8c5caa00f1" />
+Нижче наведена початкова схема з етапу планування. Поточна реалізація містить Country, Mountain, Route, Stop, Org і Trip. Актуальна структура та назви полів визначені моделями й міграціями в catalog.
+
+![Схема бази даних Summit](https://github.com/user-attachments/assets/1e0d6ecb-c191-4dcf-8cd9-ff8c5caa00f1)
