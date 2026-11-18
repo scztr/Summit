@@ -4,9 +4,10 @@ from rest_framework.response import Response
 from .models import Country, Mountain, Route, Stop, Org, Trip
 from .serializers import CountrySerializer, MountainSerializer, RouteSerializer, StopSerializer, OrgSerializer, TripSerializer
 from django.db.models.deletion import ProtectedError
-
+from acc.permissions import ADorReadO
 
 class CountryList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request):
         country = Country.objects.all()
         serializer = CountrySerializer(country, many=True)
@@ -22,6 +23,7 @@ class CountryList(APIView):
             return Response({"errors": serializer.errors},status=400)
     
 class CountryDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, id):
         try:
             country =Country.objects.get(id=id)
@@ -57,6 +59,7 @@ class CountryDetail(APIView):
 
 
 class MountainList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request):
         mountain = Mountain.objects.all()
         serializer = MountainSerializer(mountain, many=True)
@@ -72,6 +75,7 @@ class MountainList(APIView):
             return Response({"errors": serializer.errors},status=400)
     
 class MountainDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, id):
         try:
             mountain =Mountain.objects.get(id=id)
@@ -107,6 +111,7 @@ class MountainDetail(APIView):
         
 
 class RouteList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request):
         route = Route.objects.all()
         serializer = RouteSerializer(route, many=True)
@@ -122,6 +127,7 @@ class RouteList(APIView):
 
 
 class RouteDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, id):
         try:
             route =Route.objects.get(id=id)
@@ -156,6 +162,7 @@ class RouteDetail(APIView):
         return Response(status=204)
 
 class StopList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, route_id):
         try:
             Route.objects.get(id=route_id)
@@ -184,6 +191,7 @@ class StopList(APIView):
 
 
 class StopDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, route_id, id):
         try:
             stop = Stop.objects.get(id=id, route_id=route_id)
@@ -213,6 +221,7 @@ class StopDetail(APIView):
         return Response(status=204)
 
 class OrgList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request):
         org = Org.objects.all()
         serializer = OrgSerializer(org, many=True)
@@ -227,6 +236,7 @@ class OrgList(APIView):
             return Response({"errors": serializer.errors},status=400)
 
 class OrgDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, id):
         try:
             org = Org.objects.get(id=id)
@@ -260,6 +270,7 @@ class OrgDetail(APIView):
         return Response(status=204)
 
 class TripList(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request):
         trip = Trip.objects.all()
         serializer = TripSerializer(trip, many=True)
@@ -278,6 +289,7 @@ class TripList(APIView):
             return Response({"errors": serializer.errors},status=400)
 
 class TripDetail(APIView):
+    permission_classes = [ADorReadO]
     def get(self, request, id):
         try:
             trip = Trip.objects.get(id=id)
