@@ -338,7 +338,45 @@ ID створених записів зберігаються у змінні к
 ![Схема бази даних Summit](https://github.com/user-attachments/assets/1e0d6ecb-c191-4dcf-8cd9-ff8c5caa00f1)
 
 
-## Поточний етап
+## Минулий етап
 Додано реєстрацію, вхід через JWT, оновлення access-токена та перегляд власного профілю. Перегляд каталогу доступний усім, створення, редагування та видалення - лише користувачам з `is_staff=True`.
 
 Заявки, обране, редагування профілю, пошук і фільтри залишаються планами на наступні етапи.
+
+
+## Поточний етап (логи+тести)
+### Локальні налаштування
+
+Скопіюйте `.env.example` у `.env` у папці з `manage.py`:
+
+```bash
+cp .env.example .env
+```
+
+Згенеруйте `SECRET_KEY` і додайте його в `.env`:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+`DEBUG=True` вмикає режим налагодження. Файл `.env` не додається до Git.
+
+### Тести та покриття
+
+Встановіть залежності й запустіть тести:
+
+```bash
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+Для перевірки покриття:
+
+```bash
+python -m coverage run --source=. --omit="*/.venv/*,*/country_test.py,*/tests.py,*/conftest.py,*/check_submission.py" -m pytest -q
+python -m coverage report -m
+```
+
+### Документація API
+
+Запустіть `python manage.py runserver` і відкрийте [Swagger UI](http://127.0.0.1:8000/api/docs/). [OpenAPI-схема](http://127.0.0.1:8000/api/schema/) доступна окремо.
