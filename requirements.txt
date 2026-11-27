@@ -4,3 +4,5 @@ djangorestframework==3.18.3
 django-cors-headers==4.9.0
 sqlparse>=0.6.0,<0.7.0
 djangorestframework-simplejwt
+drf-spectacular
+python-dotenv

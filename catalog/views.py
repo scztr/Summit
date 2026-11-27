@@ -5,15 +5,35 @@ from .models import Country, Mountain, Route, Stop, Org, Trip
 from .serializers import CountrySerializer, MountainSerializer, RouteSerializer, StopSerializer, OrgSerializer, TripSerializer
 from django.db.models.deletion import ProtectedError
 from acc.permissions import ADorReadO
+from drf_spectacular.utils import extend_schema
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CountryList(APIView):
     permission_classes = [ADorReadO]
+
+    @extend_schema(
+        summary="Отримати список країн",
+        description="Публічний список. Недійсний JWT — 401.",
+        auth=[],
+        responses={200: CountrySerializer(many=True), 401: dict},
+    )
     def get(self, request):
         country = Country.objects.all()
         serializer = CountrySerializer(country, many=True)
 
         return Response(serializer.data)
 
+    @extend_schema(
+        summary="Створити країну",
+        description=(
+            "Потрібен JWT адміністратора. Назва має бути унікальною. "
+            '400: `{"errors": {"name": ["..."]}}`.'
+        ),
+        request=CountrySerializer,
+        responses={201: CountrySerializer, 400: dict, 401: dict, 403: dict},
+    )
     def post(self, request):
         serializer = CountrySerializer(data=request.data)
         if serializer.is_valid():
@@ -24,6 +44,13 @@ class CountryList(APIView):
     
 class CountryDetail(APIView):
     permission_classes = [ADorReadO]
+
+    @extend_schema(
+        summary="Отримати країну за ID",
+        description='Публічний перегляд. 404: `{"errors": "Країну не знайдено"}`.',
+        auth=[],
+        responses={200: CountrySerializer, 401: dict, 404: dict},
+    )
     def get(self, request, id):
         try:
             country =Country.objects.get(id=id)
@@ -32,7 +59,16 @@ class CountryDetail(APIView):
         serializer = CountrySerializer(country)
 
         return Response(serializer.data)
-    
+
+    @extend_schema(
+        summary="Редагувати країну",
+        description=(
+            "Потрібен JWT адміністратора. Передай лише змінені поля, "
+            'наприклад `{"description": "Новий опис"}`.'
+        ),
+        request=CountrySerializer,
+        responses={200: CountrySerializer, 400: dict, 401: dict, 403: dict, 404: dict},
+    )
     def patch(self, request, id):
         try:
             country =Country.objects.get(id=id)
@@ -45,6 +81,11 @@ class CountryDetail(APIView):
         else:
             return Response({"errors": serializer.errors},status=400)
 
+    @extend_schema(
+        summary="Видалити країну",
+        description="Потрібен JWT. 403 — бракує прав адміністратора, 409 — до країни прив’язані гори.",
+        responses={204: None, 401: dict, 403: dict, 404: dict, 409: dict},
+    )
     def delete(self, request, id):
         try:
             country = Country.objects.get(id=id)
@@ -53,8 +94,9 @@ class CountryDetail(APIView):
         try:
             country.delete()
         except ProtectedError:
+            logger.warning(f"Не вдалося видалити країну id={id}: до неї прив’язані гори.")
             return Response({"errors": "Неможливо видалити країну, поки до неї прив’язані гори. Спочатку видаліть або перенесіть їх."}, status = 409)
-        
+        logger.info(f"Країну id={id} видалено.")
         return Response(status=204) 
 
 
